@@ -55,6 +55,7 @@ func main() {
             http.Error(w, "Failed to grant privileges", http.StatusInternalServerError)
             return
         }
+		
 
         fmt.Fprintf(w, "User created with privileges: %s on schema %s", privileges, u.Schema)
     })
