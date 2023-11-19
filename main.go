@@ -18,8 +18,13 @@ type User struct {
     Privileges string `json:"privileges"`
 }
 
+func escapeSQL(value string) string {
+    // 単純なエスケープ例（実際の実装ではより堅牢な方法を検討すること）
+    return strings.Replace(value, "'", "''", -1)
+}
+
 func main() {
-    db, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
+    db, err := sql.Open("mysql", "root:IhVmfFZo8R?@tcp(13.112.0.29:3306)/my_schema4")
     if err != nil {
         log.Fatal(err)
     }
@@ -38,24 +43,21 @@ func main() {
             return
         }
 
-        _, err = db.Exec("CREATE USER ? IDENTIFIED BY ?", u.Username, u.Password)
+        _, err = db.Exec(fmt.Sprintf("CREATE USER '%s' IDENTIFIED BY '%s'", 
+        escapeSQL(u.Username), escapeSQL(u.Password)))
         if err != nil {
             http.Error(w, "Failed to create user", http.StatusInternalServerError)
             return
         }
-
-        // 権限リストの検証（例: "SELECT, INSERT"）
-        // ...
-
+    
         privileges := strings.ToUpper(u.Privileges)
-        query := fmt.Sprintf("GRANT %s ON %s.* TO ?", privileges, u.Schema)
+        query := fmt.Sprintf("GRANT %s ON `%s`.* TO '%s'", privileges, escapeSQL(u.Schema), escapeSQL(u.Username))
 
-        _, err = db.Exec(query, u.Username)
+        _, err = db.Exec(query)
         if err != nil {
             http.Error(w, "Failed to grant privileges", http.StatusInternalServerError)
             return
         }
-		
 
         fmt.Fprintf(w, "User created with privileges: %s on schema %s", privileges, u.Schema)
     })
